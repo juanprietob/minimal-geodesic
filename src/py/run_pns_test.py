@@ -7,8 +7,12 @@ import LinearSubdivisionFilter as lsf
 import argparse
 import os
 
-import math
 import PNS
+import json
+
+import tensorflow as tf
+
+tf.enable_eager_execution()
 
 def normalize_points(poly, radius=1.0):
 	polypoints = poly.GetPoints()
@@ -39,33 +43,45 @@ def CreateIcosahedron(radius, sl):
 
 pns = PNS.PNS()
 # lets create dummy {x,y,z} coordinates
-rand_points = np.abs([pns.NormalizeVector(r) for r in np.random.normal(size=[20, 4096])])
-
+rand_points = tf.abs(pns.NormalizeVectors(np.random.normal(size=[20, 5])))
 
 pns.Fit(rand_points)
 
+circle_center_v1 = pns.GetCircleCenter(3)
+angle_r1 = pns.GetAngleR1(3)
+rot_mat = pns.GetRotationMatrix(3)
+
+points, projected, residuals = pns.GetScores(3)
+
+out_dict = {}
+
+out_dict["circle_center_v1"] = circle_center_v1.numpy().tolist()
+out_dict["angle_r1"] = angle_r1
+out_dict["rot_mat"] = rot_mat.numpy().tolist()
+out_dict["points"] = points.numpy().tolist()
+out_dict["projected"] = projected.numpy().tolist()
+out_dict["residuals"] = residuals.numpy().tolist()
+
+with open('test.json', 'w') as f:
+    json.dump(out_dict, f)
+
 # build points & polydata from numpy_to_vtk
-points = vtk.vtkPoints()
+vtk_points = vtk.vtkPoints()
 vertices = vtk.vtkCellArray()
 
-for p in pns.GetPoints(3):
-	pid = points.InsertNextPoint(p)
+for p in points:
+	pid = vtk_points.InsertNextPoint(p)
 	vertices.InsertNextCell(1)
 	vertices.InsertCellPoint(pid)
 
 poly_rand = vtk.vtkPolyData()
-poly_rand.SetPoints(points)
+poly_rand.SetPoints(vtk_points)
 poly_rand.SetVerts(vertices)
-
-circle_center_v1 = pns.GetCircleCenter(3)
-angle_r1 = pns.GetAngleR1(3)
-
-rot_mat = pns.GetRotationMatrix(3)
 
 projected_points = vtk.vtkPoints()
 projected_cells = vtk.vtkCellArray()
 
-for p, prp in zip(pns.GetPoints(3), pns.GetProjectedPoints(3)):
+for p, prp in zip(points, projected):
 
 	pid0 = projected_points.InsertNextPoint(p)
 	pid1 = projected_points.InsertNextPoint(prp)
