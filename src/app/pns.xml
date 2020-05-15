@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<executable>
+  <category>PNS</category>
+  <title></title>
+  <version>1.0.0</version>
+  <description>
+    Principal nested spheres
+  </description>
+  <contributor>Juan Carlos Prieto</contributor>
+
+  <parameters>
+    <label>Input parameters</label>
+    <description>Input parameters</description>
+
+    <image>
+      <name>inputSurface</name>
+      <label>Input surface</label>
+      <channel>input</channel>
+      <description>Input surface or point cloud to compute the principal nested spheres</description>
+      <longflag>surf</longflag>
+    </image>
+
+  </parameters>
+
+  <parameters>
+    <label>Ouput parameters</label>
+    <description>Output parameters</description>
+
+    <string>
+      <name>outputName</name>
+      <label>Output directory or filename</label>
+      <channel>output</channel>
+      <description>Write the output images</description>
+      <longflag>out</longflag>
+      <default>out.nrrd</default>
+    </string>
+
+  </parameters>
+</executable>
