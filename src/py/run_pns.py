@@ -1,8 +1,6 @@
 
-import vtk
 import numpy as np
 import time
-import LinearSubdivisionFilter as lsf
 
 import argparse
 import os
@@ -12,13 +10,16 @@ import math
 import tensorflow as tf
 import PNS
 import itk
+import glob
+import json
 
-tf.enable_eager_execution()
+print("Tensorflow version:", tf.__version__)
 
 parser = argparse.ArgumentParser(description='Run PNS on encoded images that live on sphere', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-parser.add_argument('--dir', type=str, help='Directory with encoded images')
-parser.add_argument('--out', type=str, help='Output csv', default="out.json")
+parser.add_argument('--dir', type=str, help='Directory with encoded images', required=True)
+parser.add_argument('--continue_fitting', type=bool, help='Continue the fitting process', default=False)
+parser.add_argument('--out', type=str, help='Output directory', default="./out")
 
 args = parser.parse_args()
 
@@ -66,21 +67,37 @@ for img_obj in filenames:
   encoded_images.append(img_np.reshape(-1))
 
 
+encoded_images = np.array(encoded_images).astype('float32')
+
+print(encoded_images.shape)
+points = encoded_images
+
 pns = PNS.PNS()
+pns.SetOutputDirectory(args.out)
+pns.Fit(points, args.continue_fitting)
+points = pns.GetFkPoints(3)
+projected = pns.GetProjectedPoints(3)
+circle_center_v1, angle_r1, rot_mat = pns.GetSubSphereFit(3)
 
-circle_center_v1 = pns.GetCircleCenter(3)
-angle_r1 = pns.GetAngleR1(3)
-rot_mat = pns.GetRotationMatrix(3)
-points, projected, residuals = pns.GetScores(3)
 
-out_dict = {}
+out_dir = os.path.normpath(args.out)
+if not os.path.exists(out_dir):
+  os.makedirs(out_dir)
 
-out_dict["circle_center_v1"] = circle_center_v1.numpy().tolist()
-out_dict["angle_r1"] = angle_r1
-out_dict["rot_mat"] = rot_mat.numpy().tolist()
-out_dict["points"] = points.numpy().tolist()
-out_dict["projected"] = projected.numpy().tolist()
-out_dict["residuals"] = residuals.numpy().tolist()
+out_obj = {}
+out_obj["circle_center_v1"] = circle_center_v1.numpy().tolist()
+out_obj["angle_r1"] = angle_r1.numpy().tolist()
+out_obj["rot_mat"] = rot_mat.numpy().tolist()
+out_obj["pns"] = []
 
-with open(args.out, 'w') as f:
-    json.dump(out_dict, f)
+for name, p, pr in zip(filenames, points, projected):
+  o_obj = {}
+  o_obj["name"] = name
+  o_obj["point"] = p.numpy().tolist()
+  o_obj["projected"] = pr.numpy().tolist()
+  out_obj["pns"].append(o_obj)
+
+out_pns = os.path.normpath(args.out) + ".json"
+print("Writting", out_pns)
+with open(out_pns, 'w') as f:
+  json.dump(out_obj, f)

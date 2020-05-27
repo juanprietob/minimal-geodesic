@@ -14,6 +14,13 @@ import tensorflow as tf
 
 print("Tensorflow version:", tf.__version__)
 
+parser = argparse.ArgumentParser(description='Plot PNS results', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+parser.add_argument('--json', type=str, help='JSON file created by PNS', required=True)
+parser.add_argument('--labels', type=str, help='CSV with label info', default=None)
+
+
+
 def normalize_points(poly, radius=1.0):
 	polypoints = poly.GetPoints()
 	for pid in range(polypoints.GetNumberOfPoints()):
@@ -41,43 +48,17 @@ def CreateIcosahedron(radius, sl):
 
 	return icosahedron
 
+ 
+with open(args.json, 'r') as jsf:
+	pns_obj = json.load(jsf)
 
-pns = PNS.PNS()
 
-# lets create dummy {x,y,z} coordinates
-rand_points = tf.cast(tf.abs(pns.NormalizeVectors(np.random.normal(size=[500, 4]))), tf.float32)
+points = pns_obj["pns"]["points"]
+projected = pns_obj["pns"]["projected"]
+circle_center_v1 = pns_obj["circle_center_v1"]
+angle_r1 = pns_obj["angle_r1"]
+rot_mat = pns_obj["rot_mat"]
 
-dimension = tf.shape(rand_points)[-1]
-
-# if(args.continue_fitting):
-  
-#   min_dim = dimension
-
-#   for d in range(dimension.numpy(), 2, -1):
-#     fit_path = os.path.join(args.out, "sphere_fit_" + str(d) + ".json") 
-
-#     if(os.path.exists(fit_path)):
-#       min_dim = d
-
-#   fit_path = os.path.join(args.out, "sphere_fit_" + str(min_dim) + ".json") 
-
-#   if(os.path.exists(fit_path)):
-#     print("Continue fitting at dimension", min_dim)
-#     points = pns.GetFkPoints_g(encoded_images, min_dim)
-# else:
-#   points = encoded_images
-
-points = rand_points
-pns.Fit(points)
-
-points = pns.GetFkPoints(3)
-points_ = pns.GetFkPoints_(3)
-projected = pns.GetProjectedPoints(3)
-circle_center_v1, angle_r1, rot_mat = pns.GetSubSphereFit(3)
-
-rand_points_ = pns.GetFk_1Points(points)
-
-print(rand_points, rand_points_)
 
 # build points & polydata from numpy_to_vtk
 vtk_points = vtk.vtkPoints()
@@ -88,22 +69,9 @@ for p in points:
 	vertices.InsertNextCell(1)
 	vertices.InsertCellPoint(pid)
 
-poly_rand = vtk.vtkPolyData()
-poly_rand.SetPoints(vtk_points)
-poly_rand.SetVerts(vertices)
-
-# build points & polydata from numpy_to_vtk
-vtk_points_g = vtk.vtkPoints()
-vertices_g = vtk.vtkCellArray()
-
-for p in points_:
-	pid = vtk_points_g.InsertNextPoint(p)
-	vertices_g.InsertNextCell(1)
-	vertices_g.InsertCellPoint(pid)
-
-poly_rand_g = vtk.vtkPolyData()
-poly_rand_g.SetPoints(vtk_points_g)
-poly_rand_g.SetVerts(vertices_g)
+poly_points = vtk.vtkPolyData()
+poly_points.SetPoints(vtk_points)
+poly_points.SetVerts(vertices)
 
 
 projected_points = vtk.vtkPoints()
@@ -154,24 +122,13 @@ poly_circle.SetPoints(circle_points)
 poly_circle.SetLines(circle_cells)
 
 
-poly_rand_mapper = vtk.vtkPolyDataMapper()
-poly_rand_mapper.SetInputData(poly_rand)
-poly_rand_actor = vtk.vtkActor()
-poly_rand_actor.SetMapper(poly_rand_mapper)
-# poly_rand_actor.GetProperty().SetRepresentationToPoints()
-poly_rand_actor.GetProperty().SetColor(1.0, 0, 0)
-poly_rand_actor.GetProperty().SetPointSize(20)
-
-
-
-poly_rand_g_mapper = vtk.vtkPolyDataMapper()
-poly_rand_g_mapper.SetInputData(poly_rand_g)
-poly_rand_g_actor = vtk.vtkActor()
-poly_rand_g_actor.SetMapper(poly_rand_g_mapper)
-# poly_rand_actor.GetProperty().SetRepresentationToPoints()
-poly_rand_g_actor.GetProperty().SetColor(0.2, 1.0, 0)
-poly_rand_g_actor.GetProperty().SetPointSize(10)
-
+poly_points_mapper = vtk.vtkPolyDataMapper()
+poly_points_mapper.SetInputData(poly_points)
+poly_points_actor = vtk.vtkActor()
+poly_points_actor.SetMapper(poly_rand_mapper)
+poly_points_actor.GetProperty().SetRepresentationToPoints()
+poly_points_actor.GetProperty().SetColor(1.0, 0, 0)
+poly_points_actor.GetProperty().SetPointSize(20)
 
 
 poly_circle_mapper = vtk.vtkPolyDataMapper()
@@ -230,8 +187,7 @@ iren = vtk.vtkRenderWindowInteractor()
 iren.SetRenderWindow(renWin)
 
 ren1.AddActor(icosahedronactor)
-ren1.AddActor(poly_rand_actor)
-ren1.AddActor(poly_rand_g_actor)
+ren1.AddActor(poly_points_actor)
 ren1.AddActor(poly_circle_actor)
 ren1.AddActor(circle_center_source_actor)
 ren1.AddActor(north_source_actor)
