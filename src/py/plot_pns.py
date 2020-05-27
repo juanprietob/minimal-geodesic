@@ -9,6 +9,7 @@ import os
 
 import PNS
 import json
+import csv
 
 import tensorflow as tf
 
@@ -18,8 +19,9 @@ parser = argparse.ArgumentParser(description='Plot PNS results', formatter_class
 
 parser.add_argument('--json', type=str, help='JSON file created by PNS', required=True)
 parser.add_argument('--labels', type=str, help='CSV with label info', default=None)
+parser.add_argument('--color', type=str, help='JSON with color info for labels', default=None)
 
-
+args = parser.parse_args()
 
 def normalize_points(poly, radius=1.0):
 	polypoints = poly.GetPoints()
@@ -52,9 +54,37 @@ def CreateIcosahedron(radius, sl):
 with open(args.json, 'r') as jsf:
 	pns_obj = json.load(jsf)
 
+color_obj = {}
+if args.color is not None:
+	with open(args.color, 'r') as jsf:
+		color_obj = json.load(jsf)
 
-points = pns_obj["pns"]["points"]
-projected = pns_obj["pns"]["projected"]
+points_colors = None
+dict_filenames = {}
+if args.labels is not None:
+
+	points_colors = vtk.vtkUnsignedCharArray()
+	points_colors.SetNumberOfComponents(3)
+	points_colors.SetName("Colors")
+
+	with open(args.labels) as csvfile:
+		csv_reader = csv.reader(csvfile)
+		for row in csv_reader:
+			prop = {}
+			if color_obj is not None and color_obj[row[1]] is not None:
+				prop["color"] = color_obj[row[1]]
+			else:
+				color_obj[row[1]] = np.random.rand(3)
+				prop["color"] = color_obj[row[1]]
+
+			prop["label"] = row[1]
+			dict_filenames[row[0]] = prop
+
+			points_colors.InsertNextTuple(prop["color"])
+	
+
+points = pns_obj["points"]
+projected = pns_obj["projected"]
 circle_center_v1 = pns_obj["circle_center_v1"]
 angle_r1 = pns_obj["angle_r1"]
 rot_mat = pns_obj["rot_mat"]
@@ -73,6 +103,8 @@ poly_points = vtk.vtkPolyData()
 poly_points.SetPoints(vtk_points)
 poly_points.SetVerts(vertices)
 
+if points_colors is not None:
+	poly_points.GetPointData().SetScalars(points_colors)
 
 projected_points = vtk.vtkPoints()
 projected_cells = vtk.vtkCellArray()
@@ -125,7 +157,7 @@ poly_circle.SetLines(circle_cells)
 poly_points_mapper = vtk.vtkPolyDataMapper()
 poly_points_mapper.SetInputData(poly_points)
 poly_points_actor = vtk.vtkActor()
-poly_points_actor.SetMapper(poly_rand_mapper)
+poly_points_actor.SetMapper(poly_points_mapper)
 poly_points_actor.GetProperty().SetRepresentationToPoints()
 poly_points_actor.GetProperty().SetColor(1.0, 0, 0)
 poly_points_actor.GetProperty().SetPointSize(20)
@@ -178,7 +210,7 @@ icosahedronmapper = vtk.vtkPolyDataMapper()
 icosahedronmapper.SetInputData(icosahedron)
 icosahedronactor = vtk.vtkActor()
 icosahedronactor.SetMapper(icosahedronmapper)
-icosahedronactor.GetProperty().SetRepresentationToWireframe()
+# icosahedronactor.GetProperty().SetRepresentationToWireframe()
 
 ren1 = vtk.vtkRenderer()
 renWin = vtk.vtkRenderWindow()
@@ -191,7 +223,7 @@ ren1.AddActor(poly_points_actor)
 ren1.AddActor(poly_circle_actor)
 ren1.AddActor(circle_center_source_actor)
 ren1.AddActor(north_source_actor)
-ren1.AddActor(projected_actor)
+# ren1.AddActor(projected_actor)
 
 ren1.SetBackground(0,.5,1)
 ren1.ResetCamera()
