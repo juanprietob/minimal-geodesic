@@ -88,14 +88,9 @@ out_obj = {}
 out_obj["circle_center_v1"] = circle_center_v1.numpy().tolist()
 out_obj["angle_r1"] = angle_r1.numpy().tolist()
 out_obj["rot_mat"] = rot_mat.numpy().tolist()
-out_obj["pns"] = []
-
-for name, p, pr in zip(filenames, points, projected):
-  o_obj = {}
-  o_obj["name"] = name
-  o_obj["point"] = p.numpy().tolist()
-  o_obj["projected"] = pr.numpy().tolist()
-  out_obj["pns"].append(o_obj)
+out_obj["points"] = points.numpy().tolist()
+out_obj["projected"] = projected.numpy().tolist()
+out_obj["names"] = filenames
 
 out_pns = os.path.normpath(args.out) + ".json"
 print("Writting", out_pns)

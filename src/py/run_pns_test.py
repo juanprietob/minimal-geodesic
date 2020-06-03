@@ -45,7 +45,7 @@ def CreateIcosahedron(radius, sl):
 pns = PNS.PNS()
 
 # lets create dummy {x,y,z} coordinates
-rand_points = tf.cast(tf.abs(pns.NormalizeVectors(np.random.normal(size=[500, 4]))), tf.float32)
+rand_points = tf.cast(tf.abs(pns.NormalizeVectors(np.random.normal(size=[500, 10]))), tf.float32)
 
 dimension = tf.shape(rand_points)[-1]
 
@@ -71,8 +71,8 @@ points = rand_points
 pns.Fit(points)
 
 points = pns.GetFkPoints(3)
-points_ = pns.GetFkPoints_(3)
-projected = pns.GetProjectedPoints(3)
+# points_ = pns.GetFkPoints_(3)
+projected = pns.GetProjectedPoints(points=points)
 circle_center_v1, angle_r1, rot_mat = pns.GetSubSphereFit(3)
 
 rand_points_ = pns.GetFk_1Points(points)
@@ -93,17 +93,17 @@ poly_rand.SetPoints(vtk_points)
 poly_rand.SetVerts(vertices)
 
 # build points & polydata from numpy_to_vtk
-vtk_points_g = vtk.vtkPoints()
-vertices_g = vtk.vtkCellArray()
+# vtk_points_g = vtk.vtkPoints()
+# vertices_g = vtk.vtkCellArray()
 
-for p in points_:
-	pid = vtk_points_g.InsertNextPoint(p)
-	vertices_g.InsertNextCell(1)
-	vertices_g.InsertCellPoint(pid)
+# for p in points_:
+# 	pid = vtk_points_g.InsertNextPoint(p)
+# 	vertices_g.InsertNextCell(1)
+# 	vertices_g.InsertCellPoint(pid)
 
-poly_rand_g = vtk.vtkPolyData()
-poly_rand_g.SetPoints(vtk_points_g)
-poly_rand_g.SetVerts(vertices_g)
+# poly_rand_g = vtk.vtkPolyData()
+# poly_rand_g.SetPoints(vtk_points_g)
+# poly_rand_g.SetVerts(vertices_g)
 
 
 projected_points = vtk.vtkPoints()
@@ -164,13 +164,13 @@ poly_rand_actor.GetProperty().SetPointSize(20)
 
 
 
-poly_rand_g_mapper = vtk.vtkPolyDataMapper()
-poly_rand_g_mapper.SetInputData(poly_rand_g)
-poly_rand_g_actor = vtk.vtkActor()
-poly_rand_g_actor.SetMapper(poly_rand_g_mapper)
-# poly_rand_actor.GetProperty().SetRepresentationToPoints()
-poly_rand_g_actor.GetProperty().SetColor(0.2, 1.0, 0)
-poly_rand_g_actor.GetProperty().SetPointSize(10)
+# poly_rand_g_mapper = vtk.vtkPolyDataMapper()
+# poly_rand_g_mapper.SetInputData(poly_rand_g)
+# poly_rand_g_actor = vtk.vtkActor()
+# poly_rand_g_actor.SetMapper(poly_rand_g_mapper)
+# # poly_rand_actor.GetProperty().SetRepresentationToPoints()
+# poly_rand_g_actor.GetProperty().SetColor(0.2, 1.0, 0)
+# poly_rand_g_actor.GetProperty().SetPointSize(10)
 
 
 
@@ -231,7 +231,7 @@ iren.SetRenderWindow(renWin)
 
 ren1.AddActor(icosahedronactor)
 ren1.AddActor(poly_rand_actor)
-ren1.AddActor(poly_rand_g_actor)
+# ren1.AddActor(poly_rand_g_actor)
 ren1.AddActor(poly_circle_actor)
 ren1.AddActor(circle_center_source_actor)
 ren1.AddActor(north_source_actor)

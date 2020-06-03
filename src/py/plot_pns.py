@@ -80,7 +80,14 @@ if args.labels is not None:
 			prop["label"] = row[1]
 			dict_filenames[row[0]] = prop
 
+
+	for fn in pns_obj["names"]:
+		prop = dict_filenames[fn]
+		if prop is not None:
 			points_colors.InsertNextTuple(prop["color"])
+		else:
+			points_colors.InsertNextTuple([0, 0, 0])
+			print("Not found", fn)
 	
 
 points = pns_obj["points"]
