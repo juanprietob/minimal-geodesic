@@ -82,8 +82,9 @@ if args.labels is not None:
 
 
 	for fn in pns_obj["names"]:
-		prop = dict_filenames[fn]
-		if prop is not None:
+		img = fn["img"]
+		if img in dict_filenames:
+			prop = dict_filenames[img]
 			points_colors.InsertNextTuple(prop["color"])
 		else:
 			points_colors.InsertNextTuple([0, 0, 0])
